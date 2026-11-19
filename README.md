@@ -43,6 +43,12 @@ npm run dev          # בלי DATABASE_URL האתר רץ על נתוני הדו�
 6. **בגיטהאב:** Settings → Secrets and variables → Actions, שלושה סודות: `CAPROVER_SERVER` (למשל `https://captain.example.com`), `CAPROVER_APP`, `CAPROVER_APP_TOKEN`.
 7. אחרי ההרצה הראשונה: בדף החבילה בגיטהאב (Packages → kivrei-tzadikim → Package settings) משנים את ה-visibility ל-Public, כדי ש-CapRover יוכל למשוך את ה-image.
 
+## התראות במייל
+
+מבקרים נרשמים בדף `/subscribe` (מייל יומי עם ההילולות ו/או עדכון על כל סעודת הילולה חדשה או מעודכנת), ומאשרים בקישור שנשלח אליהם.
+המייל היומי נשלח פעם ביום בשעה `EMAIL_DAILY_HOUR` (שעון ישראל, ברירת מחדל 12:00) ומפרט את ההילולות שמתחילות בשקיעה של אותו ערב ואת הסעודות של היומיים הקרובים.
+השליחה דרך Mailer API. משתני סביבה ב-CapRover: `MAILER_API_KEY`, `MAIL_FROM` (כתובת בדומיין מאומת), `MAIL_FROM_NAME`, `SITE_URL`, `EMAIL_DAILY_HOUR`.
+
 ## חיבור המרכזייה (Technoline)
 
 בשלוחה מסוג API מגדירים את הכתובת: `https://<הדומיין>/api/ivr`.

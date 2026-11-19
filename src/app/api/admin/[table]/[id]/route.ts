@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { db } from "@/lib/pg";
+import { notifySeuda } from "@/lib/notify";
 import { isAdmin, unauthorized } from "@/lib/auth";
 import { cleanRow, dbError, entityFor } from "@/lib/admin-tables";
 
@@ -12,7 +14,9 @@ export async function PUT(req: Request, ctx: RouteContext<"/api/admin/[table]/[i
   if (!Object.keys(row).length) return Response.json({ error: "אין שינויים" }, { status: 400 });
   try {
     const [updated] = await sql`update ${sql(entity.table)} set ${sql(row)} where id = ${id} returning *`;
-    return updated ? Response.json(updated) : Response.json({ error: "לא נמצא" }, { status: 404 });
+    if (!updated) return Response.json({ error: "לא נמצא" }, { status: 404 });
+    if (entity.table === "hillula_events") after(() => notifySeuda(id, false).catch((e) => console.error("[notify]", e)));
+    return Response.json(updated);
   } catch (e) {
     return dbError(e);
   }

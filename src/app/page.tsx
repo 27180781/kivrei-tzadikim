@@ -5,6 +5,7 @@ import TzadikCard from "@/components/TzadikCard";
 import EventItem from "@/components/EventItem";
 import Candle from "@/components/Candle";
 import AdSlot from "@/components/AdSlot";
+import SubscribeBox from "@/components/SubscribeBox";
 
 export default async function Home() {
   const [days, events, all] = await Promise.all([getUpcomingHillulot(60), getUpcomingEvents({ limit: 6 }), getTzadikim()]);
@@ -42,12 +43,14 @@ export default async function Home() {
         </div>
       </section>
 
+      <div className="grid gap-10 lg:grid-cols-[1fr_300px] items-start">
+      <div className="flex flex-col gap-16 min-w-0">
       {/* הילולות היום */}
       <section>
         <div className="ornament mb-2"><span className="text-sm font-semibold">✦</span></div>
         <h2 className="text-center text-3xl md:text-4xl font-bold mb-8">הילולות היום</h2>
         {today.tzadikim.length ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {today.tzadikim.map((t) => <TzadikCard key={t.id} t={t} highlight />)}
           </div>
         ) : (
@@ -65,15 +68,13 @@ export default async function Home() {
         )}
       </section>
 
-      <AdSlot />
-
       {/* השבוע הקרוב */}
       <section>
         <div className="flex items-end justify-between mb-5">
           <h2 className="text-2xl md:text-3xl font-bold">השבוע הקרוב</h2>
           <Link href="/hillulot" className="text-accent font-semibold text-sm hover:underline">ללוח המלא ←</Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
           {week.map(({ hd, tzadikim }) => (
             <div key={hd.toString()} className={`card p-3 flex flex-col gap-1 min-h-28 ${tzadikim.length ? "border-gold/60" : ""}`}>
               <div className="font-display text-lg font-bold">{formatHebrew(hd, false)}</div>
@@ -87,6 +88,13 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      </div>
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
+        <AdSlot />
+        <SubscribeBox />
+      </aside>
+      </div>
 
       {/* סעודות */}
       <section>

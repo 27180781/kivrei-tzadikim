@@ -12,6 +12,7 @@ export default async function HillulotPage() {
   return (
     <div>
       <PageHeader title="לוח הילולות" subtitle="ההילולות בחודשיים הקרובים. ההילולה מתחילה בערב שלפני התאריך הלועזי, בשקיעה." />
+      <div className="grid gap-8 lg:grid-cols-[1fr_300px] items-start">
       <ol className="relative border-r-2 border-gold/40 pr-6 flex flex-col gap-4">
         {days.map(({ hd, tzadikim }, i) => (
           <li key={hd.toString()} className="relative">
@@ -30,7 +31,8 @@ export default async function HillulotPage() {
           </li>
         ))}
       </ol>
-      <AdSlot className="mt-10" />
+      <aside className="lg:sticky lg:top-24"><AdSlot /></aside>
+      </div>
     </div>
   );
 }

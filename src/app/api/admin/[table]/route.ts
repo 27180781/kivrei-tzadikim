@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { db } from "@/lib/pg";
+import { notifySeuda } from "@/lib/notify";
 import { isAdmin, unauthorized } from "@/lib/auth";
 import { cleanRow, dbError, entityFor } from "@/lib/admin-tables";
 
@@ -22,6 +24,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/admin/[table]">
   const row = cleanRow(entity, await req.json());
   try {
     const [created] = await sql`insert into ${sql(entity.table)} ${sql(row)} returning *`;
+    if (entity.table === "hillula_events") after(() => notifySeuda(created.id, true).catch((e) => console.error("[notify]", e)));
     return Response.json(created);
   } catch (e) {
     return dbError(e);

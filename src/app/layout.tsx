@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "מידע על קברי צדיקים: דרכי הגעה, אודות, תמונות, הילולות יומיות וסעודות הילולה.",
   appleWebApp: { capable: true, title: "קברי צדיקים", statusBarStyle: "black-translucent" },
   // האתר בעברית: מונע מגוגל/כרום להציע תרגום
-  other: { google: "notranslate", "content-language": "he" },
+  other: { google: "notranslate" },
 };
 
 export const viewport: Viewport = { themeColor: "#0e1a2b" };
@@ -22,11 +22,16 @@ const nav = [
   { href: "/tzadikim", label: "הצדיקים" },
   { href: "/hillulot", label: "לוח הילולות" },
   { href: "/seudot", label: "סעודות הילולה" },
+  { href: "/subscribe", label: "עדכונים במייל" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="he" dir="rtl" translate="no" className={`${heebo.variable} ${frank.variable} h-full antialiased`}>
+      <head>
+        <meta name="google" content="notranslate" />
+        <meta httpEquiv="Content-Language" content="he" />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <header className="sticky top-0 z-[1000] bg-night/90 text-[#f6efe1] backdrop-blur-md border-b border-white/10">
           <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">

@@ -7,7 +7,6 @@ import { currentHebrewDate, isHillulaOn } from "./hebrew";
 import type { HillulaEvent, Photo, Site, Tzadik, TzadikWithSite } from "./types";
 
 async function loadAll(): Promise<{ sites: Site[]; tzadikim: Tzadik[] }> {
-  await connection();
   const sql = await db();
   if (!sql) return { sites: seedSites, tzadikim: seedTzadikim };
   const [sites, tzadikim] = await Promise.all([
@@ -21,6 +20,12 @@ async function loadAll(): Promise<{ sites: Site[]; tzadikim: Tzadik[] }> {
 }
 
 export async function getTzadikim(): Promise<TzadikWithSite[]> {
+  await connection();
+  return fetchTzadikim();
+}
+
+/** כמו getTzadikim, לשימוש גם מחוץ לבקשה (משימות מתוזמנות). */
+export async function fetchTzadikim(): Promise<TzadikWithSite[]> {
   const { sites, tzadikim } = await loadAll();
   const byId = new Map(sites.map((s) => [s.id, s]));
   return tzadikim
@@ -68,6 +73,10 @@ export async function getPhotos(tzadikId: string, siteId: string | null): Promis
 /** סעודות הילולה עתידיות (כולל מבוטלות, כדי שהעדכון יוצג). */
 export async function getUpcomingEvents(opts: { tzadikId?: string; limit?: number } = {}): Promise<HillulaEvent[]> {
   await connection();
+  return fetchUpcomingEvents(opts);
+}
+
+export async function fetchUpcomingEvents(opts: { tzadikId?: string; limit?: number } = {}): Promise<HillulaEvent[]> {
   const sql = await db();
   const since = new Date(Date.now() - 6 * 3600 * 1000);
   const limit = opts.limit ?? 100;

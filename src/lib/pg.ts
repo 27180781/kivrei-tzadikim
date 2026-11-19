@@ -14,6 +14,7 @@ function client(): Sql | null {
   if (!url) return null;
   if (!g.__sql) {
     g.__sql = postgres(url, {
+      onnotice: () => {},
       max: 5,
       idle_timeout: 30,
       ssl: process.env["DATABASE_SSL"] === "true" ? "require" : false,

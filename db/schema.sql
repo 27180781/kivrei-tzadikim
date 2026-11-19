@@ -74,3 +74,24 @@ create table if not exists ivr_call_log (
   params jsonb,
   created_at timestamptz default now()
 );
+
+-- מנויי מייל (הרשמה כפולה: האישור דרך קישור במייל)
+create table if not exists email_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  token text unique not null,
+  daily boolean not null default true,
+  seudot boolean not null default false,
+  confirmed boolean not null default false,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz,
+  last_mail_at timestamptz
+);
+
+-- מניעת הרצה כפולה של משימות יומיות
+create table if not exists job_runs (
+  job text not null,
+  run_date date not null,
+  created_at timestamptz default now(),
+  primary key (job, run_date)
+);
