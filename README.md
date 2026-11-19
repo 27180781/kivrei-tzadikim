@@ -31,11 +31,24 @@ npm run dev
 2. SQL Editor: מריצים את `supabase/schema.sql`, ואם רוצים נתוני התחלה גם את `supabase/seed.sql`.
 3. Authentication → Users: יוצרים משתמש למנהל, ואז מריצים:
    `insert into admins (user_id) select id from auth.users where email = 'המייל שלך';`
-4. ממלאים ב-`.env.local` (ובהגדרות Vercel) את שלושת המשתנים מ-Project Settings → API.
+4. ממלאים ב-`.env.local` (ובהגדרות CapRover) את שלושת המשתנים מ-Project Settings → API.
 
-## העלאה ל-Vercel
+## פריסה ל-CapRover (אוטומטית מגיטהאב)
 
-מחברים את הריפו ב-Vercel, מוסיפים את משתני הסביבה ומפרסמים. אין צורך בהגדרות נוספות.
+כל push ל-`main` מפעיל את `.github/workflows/deploy-caprover.yml`, ששולח את הקוד ל-CapRover, וה-CapRover בונה את ה-`Dockerfile` על השרת.
+
+הגדרה חד-פעמית:
+1. **ב-CapRover:** Apps → יוצרים אפליקציה (למשל `kivrei-tzadikim`).
+2. **App Configs → Environmental Variables:** מוסיפים את שלושת המשתנים מ-`.env.example`. CapRover מעביר אותם גם לשלב הבנייה, כך ש-`NEXT_PUBLIC_*` נכנסים לקוד.
+3. **HTTP Settings:** מחברים דומיין ומפעילים HTTPS. פורט הקונטיינר הוא 80 (ברירת המחדל).
+4. **Deployment → Method 1 → Enable App Token:** מעתיקים את הטוקן.
+5. **בגיטהאב:** Settings → Secrets and variables → Actions → New repository secret, שלושה סודות:
+   - `CAPROVER_SERVER`: כתובת הלוח, למשל `https://captain.example.com`
+   - `CAPROVER_APP`: שם האפליקציה
+   - `CAPROVER_APP_TOKEN`: הטוקן משלב 4
+6. Actions → Deploy to CapRover → Run workflow (או כל push ל-main).
+
+שינוי במשתני `NEXT_PUBLIC_*` דורש פריסה מחדש, כי הם נכנסים לקוד בזמן הבנייה.
 
 ## חיבור המרכזייה (Technoline)
 
@@ -43,4 +56,4 @@ npm run dev
 המרכזייה פונה בכל שלב בשיחה וקוראת את הנתונים החיים מהמאגר בהקראה ממוחשבת.
 כל קריאה נרשמת בטבלה `ivr_call_log`, כדי לראות בדיוק אילו פרמטרים המרכזייה שולחת (למשל שם הפרמטר של מספר המתקשר).
 
-**שלב ב׳: שיחה יוצאת יומית לנרשמים.** `campaignRun` של טכנוליין דורש כתובת IP קבועה שאושרה אצלם, ול-Vercel אין כזו. לכן צריך שרת ממסר קטן עם IP קבוע (או שירות IP יוצא קבוע), שישלח כל ערב את הילולות היום לרשימת `ivr_subscribers`.
+**שלב ב׳: שיחה יוצאת יומית לנרשמים.** `campaignRun` של טכנוליין דורש כתובת IP קבועה שאושרה אצלם. לשרת CapRover יש IP קבוע, ולכן אפשר לאשר אותו אצל טכנוליין ולהריץ ממנו משימה ששולחת כל ערב את הילולות היום לרשימת `ivr_subscribers`.
