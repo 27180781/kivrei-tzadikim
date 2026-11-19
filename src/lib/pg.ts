@@ -3,6 +3,7 @@ import postgres from "postgres";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { OLD_SAMPLE_SLUGS, SEED_VERSION, seedSites, seedTzadikim } from "@/data/seed";
+import { importHillulot } from "@/lib/csv-import";
 
 type Sql = postgres.Sql;
 
@@ -51,6 +52,13 @@ async function migrate(sql: Sql) {
         await tx`insert into tzadikim ${tx({ ...r, site_id: site_id ? ids.get(site_id) ?? null : null })}`;
       }
     });
+  }
+  // גרסה 3: הוספת 308 צדיקים מ-Wikidata (db/import/wikidata-2026-11.csv), פעם אחת לכל מאגר.
+  // הייבוא מזהה צדיק קיים לפי שם, כך שהרצה חוזרת לא יוצרת כפילויות.
+  if (version < 3) {
+    const csv = await readFile(path.join(process.cwd(), "db", "import", "wikidata-2026-11.csv"), "utf8");
+    const res = await importHillulot(sql, csv);
+    console.log(`[seed v3] wikidata import: added ${res.added}, updated ${res.updated}, sites ${res.sitesAdded}, skipped ${res.skipped.length}`);
   }
   if (version < SEED_VERSION) {
     await sql`insert into app_meta (key, value) values ('seed_version', ${String(SEED_VERSION)})
