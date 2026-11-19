@@ -35,20 +35,15 @@ npm run dev
 
 ## פריסה ל-CapRover (אוטומטית מגיטהאב)
 
-כל push ל-`main` מפעיל את `.github/workflows/deploy-caprover.yml`, ששולח את הקוד ל-CapRover, וה-CapRover בונה את ה-`Dockerfile` על השרת.
+כל push ל-`main` מפעיל את `.github/workflows/deploy-caprover.yml`: הוא בונה Docker image בגיטהאב, דוחף אותו ל-`ghcr.io/27180781/kivrei-tzadikim`, ומבקש מ-CapRover להריץ אותו.
 
 הגדרה חד-פעמית:
 1. **ב-CapRover:** Apps → יוצרים אפליקציה (למשל `kivrei-tzadikim`).
-2. **App Configs → Environmental Variables:** מוסיפים את שלושת המשתנים מ-`.env.example`. CapRover מעביר אותם גם לשלב הבנייה, כך ש-`NEXT_PUBLIC_*` נכנסים לקוד.
+2. **App Configs → Environmental Variables:** מוסיפים את המשתנים מ-`.env.example`. הם נקראים בזמן ריצה, כך ששינוי שלהם דורש רק Save & Restart.
 3. **HTTP Settings:** מחברים דומיין ומפעילים HTTPS. פורט הקונטיינר הוא 80 (ברירת המחדל).
 4. **Deployment → Method 1 → Enable App Token:** מעתיקים את הטוקן.
-5. **בגיטהאב:** Settings → Secrets and variables → Actions → New repository secret, שלושה סודות:
-   - `CAPROVER_SERVER`: כתובת הלוח, למשל `https://captain.example.com`
-   - `CAPROVER_APP`: שם האפליקציה
-   - `CAPROVER_APP_TOKEN`: הטוקן משלב 4
-6. Actions → Deploy to CapRover → Run workflow (או כל push ל-main).
-
-שינוי במשתני `NEXT_PUBLIC_*` דורש פריסה מחדש, כי הם נכנסים לקוד בזמן הבנייה.
+5. **בגיטהאב:** Settings → Secrets and variables → Actions, שלושה סודות: `CAPROVER_SERVER` (למשל `https://captain.example.com`), `CAPROVER_APP`, `CAPROVER_APP_TOKEN`.
+6. אחרי ההרצה הראשונה: בדף החבילה בגיטהאב (Packages → kivrei-tzadikim → Package settings) משנים את ה-visibility ל-Public, כדי ש-CapRover יוכל למשוך את ה-image.
 
 ## חיבור המרכזייה (Technoline)
 

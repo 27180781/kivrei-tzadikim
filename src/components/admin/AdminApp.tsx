@@ -8,8 +8,8 @@ import PhotoManager from "./PhotoManager";
 
 type Row = Record<string, unknown> & { id?: string };
 
-export default function AdminApp() {
-  const sb = useMemo(() => browserClient(), []);
+export default function AdminApp({ config }: { config: { url: string; anonKey: string } | null }) {
+  const sb = useMemo(() => browserClient(config), [config]);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
