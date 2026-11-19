@@ -5,7 +5,7 @@
 import type { HillulaEvent, Photo, Site, Tzadik } from "@/lib/types";
 
 /** גרסת נתוני ההתחלה. מאגר שמכיל רק את נתוני הדוגמה הישנים מוחלף אוטומטית. */
-export const SEED_VERSION = 3;
+export const SEED_VERSION = 4;
 /** כתובות של נתוני הדוגמה מגרסה 1, לזיהוי מאגר שלא נערך */
 export const OLD_SAMPLE_SLUGS = ["rashbi","rambam","rabbi-meir-baal-hanes","haari","maran","baba-sali","rachel-imenu","yonatan-ben-uziel","or-hachaim","david-hamelech","rabbi-nachman"];
 
