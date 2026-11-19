@@ -12,8 +12,10 @@ async function loadAll(): Promise<{ sites: Site[]; tzadikim: Tzadik[] }> {
   if (!sql) return { sites: seedSites, tzadikim: seedTzadikim };
   const [sites, tzadikim] = await Promise.all([
     sql<Site[]>`select id, name, city, address, lat, lng, directions, public_transport, opening_hours, accessibility, notes from sites`,
-    sql<Tzadik[]>`select id, ivr_code, name, aka, slug, bio, bio_short, hebrew_death_day, hebrew_death_month, death_year_hebrew, site_id, is_published
-                  from tzadikim where is_published`,
+    sql<Tzadik[]>`select t.id, t.ivr_code, t.name, t.aka, t.slug, t.bio, t.bio_short, t.hebrew_death_day, t.hebrew_death_month,
+                         t.death_year_hebrew, t.site_id, t.is_published,
+                         (select p.id from photos p where p.tzadik_id = t.id order by p.sort, p.created_at limit 1) as cover_photo_id
+                  from tzadikim t where t.is_published`,
   ]);
   return { sites: [...sites], tzadikim: [...tzadikim] };
 }

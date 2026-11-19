@@ -25,6 +25,7 @@ export type Tzadik = {
   death_year_hebrew: number | null;
   site_id: string | null;
   is_published: boolean;
+  cover_photo_id?: string | null;
 };
 
 export type Photo = {

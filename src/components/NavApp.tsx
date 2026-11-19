@@ -65,17 +65,20 @@ export default function NavApp() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">קברי צדיקים קרובים</h1>
-        {hebrewDate && <span className="text-muted text-sm">{hebrewDate}</span>}
-      </div>
-
+      <div className="full-bleed night-sky -mt-8 mb-2">
+        <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col gap-4">
+          <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <h1 className="font-display text-3xl md:text-4xl font-black gold-text">ציונים קרובים אליך</h1>
+            {hebrewDate && <span className="text-gold-soft/80 text-sm">{hebrewDate}</span>}
+          </div>
       <input
-        className="input text-lg"
+        className="input text-lg !rounded-full !bg-white/95 !text-night !border-transparent"
         placeholder="🔍 חיפוש צדיק, מקום או עיר"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+        </div>
+      </div>
 
       <div className="flex gap-2 flex-wrap items-center">
         <button
@@ -102,11 +105,11 @@ export default function NavApp() {
       {!places ? <p className="text-muted">טוען…</p> : (
         <ul className="flex flex-col gap-3">
           {ranked.map((p, i) => (
-            <li key={p.id} className={`card p-4 flex flex-col gap-2 ${p.hillulaToday ? "ring-2 ring-accent" : ""}`}>
+            <li key={p.id} className={`card card-hover p-4 flex flex-col gap-2 ${p.hillulaToday ? "ring-2 ring-gold" : ""}`}>
               {p.featured && i === 0 && <div className="text-xs font-bold text-accent">🕯️ הילולות היום</div>}
               {!p.featured && i > 0 && ranked[i - 1].featured && <div className="text-xs font-bold text-muted -mt-1">קרובים אליך</div>}
               <div className="flex justify-between gap-2">
-                <Link href={`/tzadik/${p.slug}`} className="font-bold text-lg hover:text-accent">{p.name}</Link>
+                <Link href={`/tzadik/${p.slug}`} className="font-display font-bold text-xl hover:text-accent">{p.name}</Link>
                 {p.distance != null && <span className="text-sm text-muted whitespace-nowrap">{formatKm(p.distance)}</span>}
               </div>
               <div className="text-sm">📍 {p.siteName}</div>
