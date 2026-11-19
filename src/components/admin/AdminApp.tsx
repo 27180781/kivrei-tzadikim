@@ -45,6 +45,7 @@ function Login() {
 function Dashboard() {
   const router = useRouter();
   const [tab, setTab] = useState<Entity>(ENTITIES[0]);
+  const [version, setVersion] = useState(0);
   const [refs, setRefs] = useState<Refs>({ sites: [], tzadikim: [] });
   const [stats, setStats] = useState<{ subscribers: number | null; calls24h: number | null } | null>(null);
 
@@ -82,8 +83,46 @@ function Dashboard() {
           <button className="btn" onClick={logout}>יציאה</button>
         </div>
       </div>
-      <EntityEditor key={tab.table} entity={tab} refs={refs} onChange={loadRefs} />
+      <EntityEditor key={`${tab.table}-${version}`} entity={tab} refs={refs} onChange={loadRefs} />
+      <CsvImport onDone={() => { loadRefs(); setVersion((v) => v + 1); }} />
     </div>
+  );
+}
+
+function CsvImport({ onDone }: { onDone: () => void }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function upload(file: File) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api<{ added: number; updated: number; sitesAdded: number; skipped: string[] }>("/api/admin/import", {
+        method: "POST", body: await file.text(), headers: { "Content-Type": "text/csv" },
+      });
+      setMsg(`נוספו ${r.added} צדיקים, עודכנו ${r.updated}, נוספו ${r.sitesAdded} מקומות ציון.` +
+        (r.skipped.length ? ` דולגו: ${r.skipped.join(", ")}.` : ""));
+      onDone();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details className="card p-4 text-sm">
+      <summary className="font-semibold cursor-pointer">ייבוא רשימת הילולות מקובץ CSV</summary>
+      <p className="text-muted mt-2 leading-6">
+        עמודות: month, day, name, title, location, country, lat, lng (חודש בעברית, למשל תשרי).
+        צדיק שכבר קיים באותו שם מתעדכן, וחדש נוסף. מקומות באותו מיקום מאוחדים למקום ציון אחד.
+        מקום שכתוב בו &quot;לא נודע&quot; נשאר ריק.
+      </p>
+      <input type="file" accept=".csv,text/csv" disabled={busy} className="mt-3"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+      {busy && <p className="mt-2">מייבא…</p>}
+      {msg && <p className="mt-2 font-semibold">{msg}</p>}
+    </details>
   );
 }
 

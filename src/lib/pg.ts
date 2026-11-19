@@ -2,7 +2,7 @@ import "server-only";
 import postgres from "postgres";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { seedSites, seedTzadikim } from "@/data/seed";
+import { OLD_SAMPLE_SLUGS, SEED_VERSION, seedSites, seedTzadikim } from "@/data/seed";
 
 type Sql = postgres.Sql;
 
@@ -26,10 +26,19 @@ function client(): Sql | null {
 async function migrate(sql: Sql) {
   const file = await readFile(path.join(process.cwd(), "db", "schema.sql"), "utf8");
   await sql.unsafe(file);
-  const [{ count }] = await sql<{ count: number }[]>`select count(*)::int as count from tzadikim`;
-  if (count === 0) {
-    // מאגר ריק: טוענים את נתוני הדוגמה כנקודת התחלה (לעריכה בממשק הניהול)
+  await sql`create table if not exists app_meta (key text primary key, value text)`;
+  const [meta] = await sql<{ value: string }[]>`select value from app_meta where key = 'seed_version'`;
+  const version = meta ? Number(meta.value) : 1;
+  const slugs = (await sql<{ slug: string }[]>`select slug from tzadikim`).map((r) => r.slug);
+  // מאגר ריק, או מאגר שמכיל רק את נתוני הדוגמה הישנים ולא נערך: טוענים את רשימת ההילולות
+  const untouchedSample = version < SEED_VERSION && slugs.length > 0 && slugs.every((s) => OLD_SAMPLE_SLUGS.includes(s));
+  if (slugs.length === 0 || untouchedSample) {
     await sql.begin(async (tx) => {
+      if (untouchedSample) {
+        await tx`delete from tzadikim where slug in ${tx(OLD_SAMPLE_SLUGS)}`;
+        await tx`delete from sites s where not exists (select 1 from tzadikim t where t.site_id = s.id)
+          and not exists (select 1 from photos p where p.site_id = s.id)`;
+      }
       const ids = new Map<string, string>();
       for (const s of seedSites) {
         const { id, ...r } = s;
@@ -42,6 +51,10 @@ async function migrate(sql: Sql) {
         await tx`insert into tzadikim ${tx({ ...r, site_id: site_id ? ids.get(site_id) ?? null : null })}`;
       }
     });
+  }
+  if (version < SEED_VERSION) {
+    await sql`insert into app_meta (key, value) values ('seed_version', ${String(SEED_VERSION)})
+      on conflict (key) do update set value = excluded.value`;
   }
 }
 
