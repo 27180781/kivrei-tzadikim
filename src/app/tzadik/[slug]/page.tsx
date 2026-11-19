@@ -94,6 +94,12 @@ export default async function TzadikPage({ params }: PageProps<"/tzadik/[slug]">
               ) : null}
             </section>
           )}
+          {!s && (
+            <section className="card p-6 text-sm text-muted leading-6">
+              <h2 className="text-xl font-bold text-foreground mb-2">מקום הציון</h2>
+              מקום קבורתו אינו ידוע.
+            </section>
+          )}
           <AdSlot />
         </aside>
       </div>

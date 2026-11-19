@@ -145,13 +145,15 @@ function EntityEditor({ entity, refs, onChange }: { entity: Entity; refs: Refs; 
           {shown.map((r) => (
             <li key={String(r.id)}>
               <button className={`w-full text-right px-2 py-1.5 rounded-lg hover:bg-accent-soft ${editing?.id === r.id ? "bg-accent-soft" : ""}`} onClick={() => setEditing(r)}>
-                {entity.title(r) || "(ללא שם)"}
+                <div>{entity.title(r) || "(ללא שם)"}</div>
+                {subtitle(entity, r, refs) && <div className="text-xs text-muted">{subtitle(entity, r, refs)}</div>}
               </button>
             </li>
           ))}
         </ul>
       </div>
       <div>
+        <p className="card p-3 mb-3 text-sm text-muted leading-6">ℹ️ {entity.help}</p>
         {error && <p className="card p-3 mb-3 text-red-700 text-sm">{error}</p>}
         {editing ? (
           <RowForm key={String(editing.id ?? "new")} entity={entity} row={editing} refs={refs} onSave={save} onDelete={remove}>
@@ -161,6 +163,24 @@ function EntityEditor({ entity, refs, onChange }: { entity: Entity; refs: Refs; 
       </div>
     </div>
   );
+}
+
+function nameOf(list: Row[], id: unknown): string {
+  return String(list.find((x) => x.id === id)?.name ?? "");
+}
+
+/** שורת משנה ברשימה: מראה את הקשר בין הצדיקים למקומות */
+function subtitle(entity: Entity, r: Row, refs: Refs): string {
+  if (entity.table === "tzadikim") {
+    const site = refs.sites.find((s) => s.id === r.site_id);
+    return site ? `📍 ${site.name}${site.city ? `, ${site.city}` : ""}` : "ללא מקום ציון";
+  }
+  if (entity.table === "sites") {
+    const n = refs.tzadikim.filter((t) => t.site_id === r.id).length;
+    return n ? `🕯️ ${n} צדיקים` : "אין צדיקים משויכים";
+  }
+  if (entity.table === "hillula_events") return nameOf(refs.tzadikim, r.tzadik_id);
+  return "";
 }
 
 function toLocalInput(v: unknown): string {
@@ -228,8 +248,19 @@ function RowForm({ entity, row, refs, onSave, onDelete, children }: {
         <label key={f.key} className="flex flex-col gap-1 text-sm">
           <span className="font-semibold">{f.label}{f.required ? " *" : ""}</span>
           {input(f)}
+          {f.hint && <span className="text-xs text-muted">{f.hint}</span>}
         </label>
       ))}
+      {entity.table === "sites" && row.id ? (
+        <div className="rounded-xl bg-accent-soft/60 p-3 text-sm">
+          <div className="font-semibold mb-1">צדיקים שקבורים כאן</div>
+          {refs.tzadikim.filter((t) => t.site_id === row.id).length ? (
+            <ul className="list-disc pr-5">
+              {refs.tzadikim.filter((t) => t.site_id === row.id).map((t) => <li key={String(t.id)}>{String(t.name)}</li>)}
+            </ul>
+          ) : <p className="text-muted">עדיין אין. כדי לשייך צדיק, פתחו אותו בלשונית &quot;צדיקים&quot; ובחרו את המקום הזה בשדה &quot;מקום הציון&quot;.</p>}
+        </div>
+      ) : null}
       <div className="flex gap-2">
         <button className="btn btn-primary">שמירה</button>
         {row.id ? <button type="button" className="btn text-red-700" onClick={() => onDelete(row)}>מחיקה</button> : null}

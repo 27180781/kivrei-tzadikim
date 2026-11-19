@@ -7,6 +7,7 @@ export type Field = {
   options?: { value: string | number; label: string }[];
   ref?: "sites" | "tzadikim";
   required?: boolean;
+  hint?: string;
 };
 
 export type Entity = {
@@ -14,6 +15,7 @@ export type Entity = {
   label: string;
   title: (row: Record<string, unknown>) => string;
   order: string;
+  help: string;
   fields: Field[];
 };
 
@@ -22,6 +24,7 @@ export const ENTITIES: Entity[] = [
     table: "tzadikim",
     label: "צדיקים",
     order: "name",
+    help: "כל צדיק משויך למקום ציון אחד (השדה \"מקום הציון\"). ממנו נלקחים העיר, הכתובת, המיקום במפה ודרכי ההגעה שמוצגים בדף הצדיק ובאפליקציית הניווט.",
     title: (r) => String(r.name ?? ""),
     fields: [
       { key: "name", label: "שם", type: "text", required: true },
@@ -30,7 +33,7 @@ export const ENTITIES: Entity[] = [
       { key: "ivr_code", label: "מספר בקו הטלפוני", type: "number" },
       { key: "hebrew_death_day", label: "יום ההילולה (1 עד 30)", type: "number" },
       { key: "hebrew_death_month", label: "חודש ההילולה", type: "select", options: HEBREW_MONTHS },
-      { key: "site_id", label: "מקום הציון", type: "ref", ref: "sites" },
+      { key: "site_id", label: "מקום הציון", type: "ref", ref: "sites", hint: "המקום לא ברשימה? הוסיפו אותו קודם בלשונית \"מקומות ציון\", ואז בחרו אותו כאן. צדיק שמקום קבורתו לא ידוע: השאירו ריק, והוא יופיע בכל מקום חוץ מאפליקציית הניווט." },
       { key: "bio_short", label: "תקציר (מוקרא גם בטלפון)", type: "textarea" },
       { key: "bio", label: "אודות", type: "textarea" },
       { key: "is_published", label: "מפורסם באתר", type: "bool" },
@@ -40,6 +43,7 @@ export const ENTITIES: Entity[] = [
     table: "sites",
     label: "מקומות ציון",
     order: "name",
+    help: "מקום ציון הוא המקום הפיזי: כתובת, מיקום במפה ודרכי הגעה. באותו מקום יכולים להיות קבורים כמה צדיקים (למשל מערת המכפלה), ולכן הוא נשמר פעם אחת ומשויך לצדיקים מתוך דף הצדיק.",
     title: (r) => String(r.name ?? ""),
     fields: [
       { key: "name", label: "שם המקום", type: "text", required: true },
@@ -58,6 +62,7 @@ export const ENTITIES: Entity[] = [
     table: "hillula_events",
     label: "סעודות הילולה",
     order: "starts_at",
+    help: "כל סעודה משויכת לצדיק. אם לא ממלאים מקום, מוצג מקום הציון של הצדיק. שמירה שולחת התראה במייל לנרשמים לעדכוני סעודות.",
     title: (r) => `${r.starts_at ? new Date(String(r.starts_at)).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }) : ""} ${r.organizer ?? ""}`,
     fields: [
       { key: "tzadik_id", label: "צדיק", type: "ref", ref: "tzadikim", required: true },
