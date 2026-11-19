@@ -66,6 +66,12 @@ async function migrate(sql: Sql) {
     const res = await importHillulot(sql, csv);
     console.log(`[seed v4] wikidata import: added ${res.added}, updated ${res.updated}, sites ${res.sitesAdded}, skipped ${res.skipped.length}`);
   }
+  // גרסה 5: 204 רבנים נוספים שתאריך הפטירה העברי ומקום הקבורה שלהם אומתו מול ויקיפדיה העברית
+  if (version < 5) {
+    const csv = await readFile(path.join(process.cwd(), "db", "import", "wikidata-2026-11-c-verified.csv"), "utf8");
+    const res = await importHillulot(sql, csv);
+    console.log(`[seed v5] wikidata import: added ${res.added}, updated ${res.updated}, sites ${res.sitesAdded}, skipped ${res.skipped.length}`);
+  }
   if (version < SEED_VERSION) {
     await sql`insert into app_meta (key, value) values ('seed_version', ${String(SEED_VERSION)})
       on conflict (key) do update set value = excluded.value`;
