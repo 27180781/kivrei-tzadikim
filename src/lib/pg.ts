@@ -60,6 +60,12 @@ async function migrate(sql: Sql) {
     const res = await importHillulot(sql, csv);
     console.log(`[seed v3] wikidata import: added ${res.added}, updated ${res.updated}, sites ${res.sitesAdded}, skipped ${res.skipped.length}`);
   }
+  // גרסה 4: עוד 182 רבנים פחות מוכרים מ-Wikidata (db/import/wikidata-2026-11-b.csv)
+  if (version < 4) {
+    const csv = await readFile(path.join(process.cwd(), "db", "import", "wikidata-2026-11-b.csv"), "utf8");
+    const res = await importHillulot(sql, csv);
+    console.log(`[seed v4] wikidata import: added ${res.added}, updated ${res.updated}, sites ${res.sitesAdded}, skipped ${res.skipped.length}`);
+  }
   if (version < SEED_VERSION) {
     await sql`insert into app_meta (key, value) values ('seed_version', ${String(SEED_VERSION)})
       on conflict (key) do update set value = excluded.value`;
