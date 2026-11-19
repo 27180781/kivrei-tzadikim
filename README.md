@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# קברי צדיקים: אתר, אפליקציית ניווט ושלוחה טלפונית
 
-## Getting Started
+מסד נתונים אחד (Supabase) שמזין שלושה ערוצים:
 
-First, run the development server:
+| ערוץ | כתובת | מה יש בו |
+|---|---|---|
+| אתר | `/` `/tzadikim` `/tzadik/<slug>` `/hillulot` `/seudot` | הילולות היום, לוח הילולות, דף לכל צדיק (אודות, תמונות, דרכי הגעה), סעודות הילולה |
+| אפליקציית ניווט (PWA) | `/app` | חיפוש, 3 ההילולות של היום הקרובות ראשונות ואחריהן הקברים לפי קרבה, כפתור "מחוץ לעיר", מפה, ניווט ב-Waze / Google Maps |
+| שלוחה טלפונית (Technoline Module API) | `/api/ivr` | הילולות היום/השבוע, חיפוש צדיק לפי מספר, סעודות קרובות, הרשמה לעדכון יומי |
+| ניהול | `/admin` | עריכת צדיקים, מקומות ציון, סעודות ותמונות |
+
+## תאריך עברי
+
+כל החישובים לפי ארץ ישראל (`src/lib/hebrew.ts`): אזור זמן ירושלים, והיום העברי מתחלף **בשקיעה בירושלים** ולא בחצות.
+אדר בשנה פשוטה נחשב אדר ב׳ בשנה מעוברת, ול׳ בחודש שאין בו ל׳ עובר לא׳ בחודש הבא.
+בדיקות: `node --experimental-strip-types scripts/check-hebrew.mts`
+
+## הרצה מקומית
 
 ```bash
+npm install
+cp .env.example .env.local   # אפשר להשאיר ריק: האתר ירוץ על נתוני דוגמה
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+בלי משתני Supabase האתר מציג את נתוני הדוגמה מ-`src/data/seed.ts` (התאריכים והקואורדינטות שם משוערים ויש לאמת אותם).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## חיבור Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. פותחים פרויקט ב-[supabase.com](https://supabase.com).
+2. SQL Editor: מריצים את `supabase/schema.sql`, ואם רוצים נתוני התחלה גם את `supabase/seed.sql`.
+3. Authentication → Users: יוצרים משתמש למנהל, ואז מריצים:
+   `insert into admins (user_id) select id from auth.users where email = 'המייל שלך';`
+4. ממלאים ב-`.env.local` (ובהגדרות Vercel) את שלושת המשתנים מ-Project Settings → API.
 
-## Learn More
+## העלאה ל-Vercel
 
-To learn more about Next.js, take a look at the following resources:
+מחברים את הריפו ב-Vercel, מוסיפים את משתני הסביבה ומפרסמים. אין צורך בהגדרות נוספות.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## חיבור המרכזייה (Technoline)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+בשלוחה מסוג API מגדירים את הכתובת: `https://<הדומיין>/api/ivr`.
+המרכזייה פונה בכל שלב בשיחה וקוראת את הנתונים החיים מהמאגר בהקראה ממוחשבת.
+כל קריאה נרשמת בטבלה `ivr_call_log`, כדי לראות בדיוק אילו פרמטרים המרכזייה שולחת (למשל שם הפרמטר של מספר המתקשר).
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**שלב ב׳: שיחה יוצאת יומית לנרשמים.** `campaignRun` של טכנוליין דורש כתובת IP קבועה שאושרה אצלם, ול-Vercel אין כזו. לכן צריך שרת ממסר קטן עם IP קבוע (או שירות IP יוצא קבוע), שישלח כל ערב את הילולות היום לרשימת `ivr_subscribers`.
