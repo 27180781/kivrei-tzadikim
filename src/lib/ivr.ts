@@ -1,7 +1,7 @@
 import "server-only";
 import { getTzadikByCode, getTzadikim, getUpcomingEvents, hillulotOn } from "./db";
 import { currentHebrewDate, formatDateTime, spokenHebrewDate } from "./hebrew";
-import { serviceClient } from "./supabase";
+import { db } from "./pg";
 
 /**
  * מטפל השלוחה (Module API של טכנוליין).
@@ -68,18 +68,26 @@ async function eventsText(tzadikId?: string): Promise<string> {
 }
 
 async function setSubscription(phone: string | null, active: boolean): Promise<string> {
-  const sb = serviceClient();
   if (!phone) return "לא זוהה מספר הטלפון שלכם, ולכן לא ניתן לבצע את הפעולה.";
-  if (!sb) return "שירות העדכונים עדיין לא פעיל.";
-  const { error } = await sb.from("ivr_subscribers").upsert({ phone, active, subscribed_at: new Date().toISOString() });
-  if (error) return "אירעה תקלה, נסו שוב מאוחר יותר.";
+  const sql = await db();
+  if (!sql) return "שירות העדכונים עדיין לא פעיל.";
+  try {
+    await sql`insert into ivr_subscribers (phone, active) values (${phone}, ${active})
+              on conflict (phone) do update set active = excluded.active, subscribed_at = now()`;
+  } catch {
+    return "אירעה תקלה, נסו שוב מאוחר יותר.";
+  }
   return active ? "נרשמתם בהצלחה לעדכון היומי על ההילולות." : "ההרשמה לעדכון היומי בוטלה.";
 }
 
 async function log(p: Params, step: string) {
-  const sb = serviceClient();
-  if (!sb) return;
-  await sb.from("ivr_call_log").insert({ caller: callerPhone(p), step, params: p });
+  try {
+    const sql = await db();
+    if (!sql) return;
+    await sql`insert into ivr_call_log (caller, step, params) values (${callerPhone(p)}, ${step}, ${sql.json(p)})`;
+  } catch (e) {
+    console.error("ivr log failed", e);
+  }
 }
 
 export async function handleIvr(p: Params): Promise<Module> {

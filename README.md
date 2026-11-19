@@ -1,6 +1,6 @@
 # קברי צדיקים: אתר, אפליקציית ניווט ושלוחה טלפונית
 
-מסד נתונים אחד (Supabase) שמזין שלושה ערוצים:
+מסד נתונים אחד (Postgres, רץ ב-CapRover) שמזין שלושה ערוצים:
 
 | ערוץ | כתובת | מה יש בו |
 |---|---|---|
@@ -19,19 +19,16 @@
 
 ```bash
 npm install
-cp .env.example .env.local   # אפשר להשאיר ריק: האתר ירוץ על נתוני דוגמה
-npm run dev
+npm run dev          # בלי DATABASE_URL האתר רץ על נתוני הדוגמה
 ```
 
-בלי משתני Supabase האתר מציג את נתוני הדוגמה מ-`src/data/seed.ts` (התאריכים והקואורדינטות שם משוערים ויש לאמת אותם).
+עם מסד נתונים: `DATABASE_URL=postgres://... ADMIN_PASSWORD=... npm run dev`.
 
-## חיבור Supabase
+## מסד נתונים
 
-1. פותחים פרויקט ב-[supabase.com](https://supabase.com).
-2. SQL Editor: מריצים את `supabase/schema.sql`, ואם רוצים נתוני התחלה גם את `supabase/seed.sql`.
-3. Authentication → Users: יוצרים משתמש למנהל, ואז מריצים:
-   `insert into admins (user_id) select id from auth.users where email = 'המייל שלך';`
-4. ממלאים ב-`.env.local` (ובהגדרות CapRover) את שלושת המשתנים מ-Project Settings → API.
+- Postgres. בעלייה הראשונה האפליקציה יוצרת לבד את הטבלאות מ-`db/schema.sql`, ואם המאגר ריק היא טוענת את נתוני הדוגמה מ-`src/data/seed.ts` (התאריכים והקואורדינטות שם משוערים ויש לאמת אותם).
+- תמונות נשמרות בתוך מסד הנתונים ומוגשות מ-`/api/photos/<id>`, כך שגיבוי של ה-DB כולל הכול.
+- ממשק הניהול (`/admin`) נכנס בסיסמה מ-`ADMIN_PASSWORD`. החלפת הסיסמה מנתקת את כל החיבורים.
 
 ## פריסה ל-CapRover (אוטומטית מגיטהאב)
 
@@ -39,11 +36,12 @@ npm run dev
 
 הגדרה חד-פעמית:
 1. **ב-CapRover:** Apps → יוצרים אפליקציה (למשל `kivrei-tzadikim`).
-2. **App Configs → Environmental Variables:** מוסיפים את המשתנים מ-`.env.example`. הם נקראים בזמן ריצה, כך ששינוי שלהם דורש רק Save & Restart.
-3. **HTTP Settings:** מחברים דומיין ומפעילים HTTPS. פורט הקונטיינר הוא 80 (ברירת המחדל).
-4. **Deployment → Method 1 → Enable App Token:** מעתיקים את הטוקן.
-5. **בגיטהאב:** Settings → Secrets and variables → Actions, שלושה סודות: `CAPROVER_SERVER` (למשל `https://captain.example.com`), `CAPROVER_APP`, `CAPROVER_APP_TOKEN`.
-6. אחרי ההרצה הראשונה: בדף החבילה בגיטהאב (Packages → kivrei-tzadikim → Package settings) משנים את ה-visibility ל-Public, כדי ש-CapRover יוכל למשוך את ה-image.
+2. **מסד נתונים:** Apps → One-Click Apps → PostgreSQL, בשם `kivrei-db` ועם סיסמה חזקה.
+3. **App Configs → Environmental Variables** של אפליקציית האתר: `DATABASE_URL` ו-`ADMIN_PASSWORD` (ראו `.env.example`). הם נקראים בזמן ריצה, כך ששינוי שלהם דורש רק Save & Restart.
+4. **HTTP Settings:** מחברים דומיין ומפעילים HTTPS. פורט הקונטיינר הוא 80 (ברירת המחדל).
+5. **Deployment → Method 1 → Enable App Token:** מעתיקים את הטוקן.
+6. **בגיטהאב:** Settings → Secrets and variables → Actions, שלושה סודות: `CAPROVER_SERVER` (למשל `https://captain.example.com`), `CAPROVER_APP`, `CAPROVER_APP_TOKEN`.
+7. אחרי ההרצה הראשונה: בדף החבילה בגיטהאב (Packages → kivrei-tzadikim → Package settings) משנים את ה-visibility ל-Public, כדי ש-CapRover יוכל למשוך את ה-image.
 
 ## חיבור המרכזייה (Technoline)
 

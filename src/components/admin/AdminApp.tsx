@@ -1,70 +1,72 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { browserClient } from "@/lib/supabase-browser";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ENTITIES, type Entity, type Field } from "./config";
 import PhotoManager from "./PhotoManager";
+import { api } from "./api";
 
 type Row = Record<string, unknown> & { id?: string };
+type Refs = { sites: Row[]; tzadikim: Row[] };
 
-export default function AdminApp({ config }: { config: { url: string; anonKey: string } | null }) {
-  const sb = useMemo(() => browserClient(config), [config]);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    if (!sb) return;
-    sb.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => data.subscription.unsubscribe();
-  }, [sb]);
-
-  if (!sb) return <p className="card p-4">ממשק הניהול דורש חיבור ל-Supabase. הגדירו את משתני הסביבה (ראו README).</p>;
-  if (!session) return <Login sb={sb} />;
-  return <Dashboard sb={sb} onLogout={() => sb.auth.signOut()} email={session.user.email ?? ""} />;
+export default function AdminApp({ loggedIn }: { loggedIn: boolean }) {
+  return loggedIn ? <Dashboard /> : <Login />;
 }
 
-function Login({ sb }: { sb: SupabaseClient }) {
-  const [email, setEmail] = useState("");
+function Login() {
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   return (
     <form
       className="card p-6 max-w-sm mx-auto flex flex-col gap-3"
       onSubmit={async (e) => {
         e.preventDefault();
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        setMsg(error ? "שם משתמש או סיסמה שגויים" : null);
+        setBusy(true);
+        try {
+          await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) });
+          router.refresh();
+        } catch (err) {
+          setMsg((err as Error).message);
+        } finally {
+          setBusy(false);
+        }
       }}
     >
       <h1 className="text-xl font-bold">כניסה לניהול</h1>
-      <input className="input" type="email" placeholder="אימייל" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
-      <input className="input" type="password" placeholder="סיסמה" value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" />
-      <button className="btn btn-primary justify-center">כניסה</button>
+      <input className="input" type="password" placeholder="סיסמה" value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" autoFocus />
+      <button className="btn btn-primary justify-center" disabled={busy}>כניסה</button>
       {msg && <p className="text-sm text-red-700">{msg}</p>}
     </form>
   );
 }
 
-function Dashboard({ sb, onLogout, email }: { sb: SupabaseClient; onLogout: () => void; email: string }) {
+function Dashboard() {
+  const router = useRouter();
   const [tab, setTab] = useState<Entity>(ENTITIES[0]);
-  const [refs, setRefs] = useState<{ sites: Row[]; tzadikim: Row[] }>({ sites: [], tzadikim: [] });
-  const [subs, setSubs] = useState<number | null>(null);
+  const [refs, setRefs] = useState<Refs>({ sites: [], tzadikim: [] });
+  const [stats, setStats] = useState<{ subscribers: number | null; calls24h: number | null } | null>(null);
 
   const fetchRefs = useCallback(async () => {
-    const [s, t, c] = await Promise.all([
-      sb.from("sites").select("id,name").order("name"),
-      sb.from("tzadikim").select("id,name").order("name"),
-      sb.from("ivr_subscribers").select("phone", { count: "exact", head: true }).eq("active", true),
+    const [sites, tzadikim, st] = await Promise.all([
+      api<Row[]>("/api/admin/sites"),
+      api<Row[]>("/api/admin/tzadikim"),
+      api<{ subscribers: number | null; calls24h: number | null }>("/api/admin/stats"),
     ]);
-    return { refs: { sites: s.data ?? [], tzadikim: t.data ?? [] }, subs: c.count ?? null };
-  }, [sb]);
-  const apply = useCallback((r: { refs: { sites: Row[]; tzadikim: Row[] }; subs: number | null }) => {
+    return { refs: { sites, tzadikim }, stats: st };
+  }, []);
+  const apply = useCallback((r: { refs: Refs; stats: { subscribers: number | null; calls24h: number | null } }) => {
     setRefs(r.refs);
-    setSubs(r.subs);
+    setStats(r.stats);
   }, []);
   const loadRefs = useCallback(() => fetchRefs().then(apply), [fetchRefs, apply]);
-  useEffect(() => { fetchRefs().then(apply); }, [fetchRefs, apply]);
+  useEffect(() => { fetchRefs().then(apply).catch(() => {}); }, [fetchRefs, apply]);
+
+  async function logout() {
+    await api("/api/admin/logout", { method: "POST" });
+    router.refresh();
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -74,29 +76,30 @@ function Dashboard({ sb, onLogout, email }: { sb: SupabaseClient; onLogout: () =
             <button key={e.table} className={`btn ${tab.table === e.table ? "btn-primary" : ""}`} onClick={() => setTab(e)}>{e.label}</button>
           ))}
         </div>
-        <div className="text-sm text-muted flex gap-3 items-center">
-          {subs != null && <span>נרשמים לעדכון טלפוני: {subs}</span>}
-          <span dir="ltr">{email}</span>
-          <button className="btn" onClick={onLogout}>יציאה</button>
+        <div className="text-sm text-muted flex gap-3 items-center flex-wrap">
+          {stats?.subscribers != null && <span>נרשמים לעדכון טלפוני: {stats.subscribers}</span>}
+          {stats?.calls24h != null && <span>שיחות ב-24 שעות: {stats.calls24h}</span>}
+          <button className="btn" onClick={logout}>יציאה</button>
         </div>
       </div>
-      <EntityEditor key={tab.table} sb={sb} entity={tab} refs={refs} onChange={loadRefs} />
+      <EntityEditor key={tab.table} entity={tab} refs={refs} onChange={loadRefs} />
     </div>
   );
 }
 
-function EntityEditor({ sb, entity, refs, onChange }: {
-  sb: SupabaseClient; entity: Entity; refs: { sites: Row[]; tzadikim: Row[] }; onChange: () => void;
-}) {
+function EntityEditor({ entity, refs, onChange }: { entity: Entity; refs: Refs; onChange: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<Row | null>(null);
   const [filter, setFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const fetchRows = useCallback(async () => {
-    const { data, error } = await sb.from(entity.table).select("*").order(entity.order, { ascending: entity.table !== "hillula_events" });
-    return { rows: (data ?? []) as Row[], error: error?.message ?? null };
-  }, [sb, entity]);
+    try {
+      return { rows: await api<Row[]>(`/api/admin/${entity.table}`), error: null };
+    } catch (e) {
+      return { rows: [] as Row[], error: (e as Error).message };
+    }
+  }, [entity]);
   const applyRows = useCallback((r: { rows: Row[]; error: string | null }) => {
     setRows(r.rows);
     if (r.error) setError(r.error);
@@ -107,22 +110,28 @@ function EntityEditor({ sb, entity, refs, onChange }: {
   async function save(row: Row) {
     setError(null);
     const { id, ...rest } = row;
-    if (entity.table === "hillula_events") rest.updated_at = new Date().toISOString();
-    const res = id ? await sb.from(entity.table).update(rest).eq("id", id).select().single()
-      : await sb.from(entity.table).insert(rest).select().single();
-    if (res.error) { setError(res.error.message); return; }
-    setEditing(res.data);
-    await load();
-    onChange();
+    try {
+      const saved = id
+        ? await api<Row>(`/api/admin/${entity.table}/${id}`, { method: "PUT", body: JSON.stringify(rest) })
+        : await api<Row>(`/api/admin/${entity.table}`, { method: "POST", body: JSON.stringify(rest) });
+      setEditing(saved);
+      await load();
+      onChange();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   async function remove(row: Row) {
     if (!row.id || !window.confirm("למחוק?")) return;
-    const { error } = await sb.from(entity.table).delete().eq("id", row.id);
-    if (error) { setError(error.message); return; }
-    setEditing(null);
-    await load();
-    onChange();
+    try {
+      await api(`/api/admin/${entity.table}/${row.id}`, { method: "DELETE" });
+      setEditing(null);
+      await load();
+      onChange();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   const shown = rows.filter((r) => !filter || entity.title(r).includes(filter));
@@ -146,7 +155,7 @@ function EntityEditor({ sb, entity, refs, onChange }: {
         {error && <p className="card p-3 mb-3 text-red-700 text-sm">{error}</p>}
         {editing ? (
           <RowForm key={String(editing.id ?? "new")} entity={entity} row={editing} refs={refs} onSave={save} onDelete={remove}>
-            {entity.table === "tzadikim" && editing.id ? <PhotoManager sb={sb} tzadikId={String(editing.id)} /> : null}
+            {entity.table === "tzadikim" && editing.id ? <PhotoManager tzadikId={String(editing.id)} /> : null}
           </RowForm>
         ) : <p className="text-muted">בחרו פריט מהרשימה או הוסיפו חדש.</p>}
       </div>
@@ -171,7 +180,7 @@ function fromLocalInput(s: string): string | null {
 }
 
 function RowForm({ entity, row, refs, onSave, onDelete, children }: {
-  entity: Entity; row: Row; refs: { sites: Row[]; tzadikim: Row[] };
+  entity: Entity; row: Row; refs: Refs;
   onSave: (r: Row) => void; onDelete: (r: Row) => void; children?: React.ReactNode;
 }) {
   const [draft, setDraft] = useState<Row>(() => ({ ...(entity.table === "tzadikim" && !row.id ? { is_published: true } : {}), ...row }));

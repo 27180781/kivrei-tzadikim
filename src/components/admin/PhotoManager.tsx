@@ -1,37 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { api } from "./api";
 
-type P = { id: string; storage_path: string; caption: string | null };
+type P = { id: string; caption: string | null };
 
-export default function PhotoManager({ sb, tzadikId }: { sb: SupabaseClient; tzadikId: string }) {
+export default function PhotoManager({ tzadikId }: { tzadikId: string }) {
   const [photos, setPhotos] = useState<P[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchPhotos = useCallback(async (): Promise<P[]> => {
-    const { data } = await sb.from("photos").select("id,storage_path,caption").eq("tzadik_id", tzadikId).order("sort");
-    return data ?? [];
-  }, [sb, tzadikId]);
+  const fetchPhotos = useCallback(() => api<P[]>(`/api/admin/photos?tzadik_id=${tzadikId}`), [tzadikId]);
   const load = useCallback(() => fetchPhotos().then(setPhotos), [fetchPhotos]);
-  useEffect(() => { fetchPhotos().then(setPhotos); }, [fetchPhotos]);
+  useEffect(() => { fetchPhotos().then(setPhotos).catch(() => {}); }, [fetchPhotos]);
 
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     setBusy(true);
-    for (const f of Array.from(files)) {
-      const path = `${tzadikId}/${Date.now()}-${f.name.replace(/[^\w.-]/g, "_")}`;
-      const up = await sb.storage.from("photos").upload(path, f);
-      if (!up.error) await sb.from("photos").insert({ tzadik_id: tzadikId, storage_path: path, sort: photos.length });
+    setError(null);
+    const form = new FormData();
+    form.set("tzadik_id", tzadikId);
+    for (const f of Array.from(files)) form.append("file", f);
+    try {
+      await api("/api/admin/photos", { method: "POST", body: form });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    load();
   }
 
   async function remove(p: P) {
     if (!window.confirm("למחוק את התמונה?")) return;
-    await sb.storage.from("photos").remove([p.storage_path]);
-    await sb.from("photos").delete().eq("id", p.id);
+    await api(`/api/admin/photos/${p.id}`, { method: "DELETE" });
     load();
   }
 
@@ -42,13 +44,14 @@ export default function PhotoManager({ sb, tzadikId }: { sb: SupabaseClient; tza
         {photos.map((p) => (
           <div key={p.id} className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={sb.storage.from("photos").getPublicUrl(p.storage_path).data.publicUrl} alt="" className="h-24 rounded-lg object-cover" />
+            <img src={`/api/photos/${p.id}`} alt="" className="h-24 rounded-lg object-cover" />
             <button type="button" onClick={() => remove(p)} className="absolute top-1 left-1 bg-black/60 text-white text-xs rounded px-1">✕</button>
           </div>
         ))}
       </div>
       <input type="file" accept="image/*" multiple disabled={busy} onChange={(e) => upload(e.target.files)} />
       {busy && <span className="text-sm text-muted">מעלה…</span>}
+      {error && <span className="text-sm text-red-700">{error}</span>}
     </div>
   );
 }
