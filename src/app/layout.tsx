@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   title: { default: "קברי צדיקים", template: "%s | קברי צדיקים" },
   description: "מידע על קברי צדיקים: דרכי הגעה, אודות, תמונות, הילולות יומיות וסעודות הילולה.",
   appleWebApp: { capable: true, title: "קברי צדיקים", statusBarStyle: "default" },
+  // האתר בעברית: מונע מגוגל/כרום להציע תרגום
+  other: { google: "notranslate", "content-language": "he" },
 };
 
 export const viewport: Viewport = { themeColor: "#8a5a12" };
@@ -23,7 +25,7 @@ const nav = [
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
+    <html lang="he" dir="rtl" translate="no" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-[1000]">
           <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
